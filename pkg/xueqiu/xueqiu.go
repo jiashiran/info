@@ -6,12 +6,12 @@ import (
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"info/pkg"
+	"info/pkg/jijin"
 	"log"
 	"math"
 	"math/rand"
 	"regexp"
-	"spider/pkg"
-	"spider/pkg/jijin"
 	"strconv"
 	"strings"
 	"time"
@@ -22,14 +22,14 @@ var stocks = make([]Stock, 0)
 func Run() {
 	//jijin.DbInit()
 	// 代码,净资产收益率,毛利率
-	getDetailHTML() // 净资产收益率,毛利率 1
+	//getDetailHTML() // 净资产收益率,毛利率 1
 	//C() //合并，过滤
 
 	//代码,总市值,流通市值,净资产收益率,毛利率,市盈率(静),TTM,市盈率差,总股本,当前股价,名称,服务,简介  //https://xueqiu.com/S/SH688677
-	getDHTML() //详细数据， 2  //getDetail("",Stock{code: "123"})
+	//getDHTML() //详细数据， 2  //getDetail("",Stock{code: "123"})
 
 	//代码,总市值,流通市值,净资产收益率,毛利率,市盈率(静),TTM,市盈率差,总股本,当前股价,名称,服务,简介,自由现金流  //getFFC() //自由现金流
-	//getCaculateFFC("code-detail.csv") // 3 //代码,总市值,流通市值,净资产收益率,净利率,市盈率(静),TTM,市盈率(动),市盈率差,总股本,当前股价,现金流股价比率,自由现金流,每股自由现金流,上期自由现金流,上期每股自由现金流,名称,服务,简介
+	getCaculateFFC("code-detail.csv") // 3 //代码,总市值,流通市值,净资产收益率,净利率,市盈率(静),TTM,市盈率差,总股本,当前股价,现金流股价比率,自由现金流,每股自由现金流,上期自由现金流,上期每股自由现金流,名称,服务,简介
 }
 
 func caculate() {
@@ -173,8 +173,8 @@ func getDHTML() {
 		//network.Enable(),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			fmt.Println("step1")
-			reCheckByCSRBaidu("code.csv", res, ctx)
-			//reCheckByCSRDongfang("code.csv", res, ctx)
+			//reCheckByCSRBaidu("code.csv", res, ctx)
+			reCheckByCSR("code.csv", res, ctx)
 			return nil
 		}),
 	}
@@ -652,11 +652,11 @@ func getCaculateFFC(file string) {
 				code := ss[0]
 				jll, _ := strconv.ParseFloat(ss[4], 64)
 				if jll < 30 {
-					return
+					//return
 				}
 				zengzhang, _ := strconv.ParseFloat(ss[11], 64)
 				if zengzhang < 5 {
-					return
+					//return
 				}
 				if _, ok := exits[code]; ok {
 					return
@@ -1052,7 +1052,7 @@ func C() {
 			if err != nil {
 				f = 0.0 //营收增速
 			}
-			if f < 16 {
+			if f < 16 || jzc < 9 {
 				return
 			}
 			pkg.ToTxt(s, "code.csv")

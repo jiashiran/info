@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/chromedp/chromedp"
+	"info/pkg"
 	"log"
 	"math/rand"
-	"spider/pkg"
 	"strings"
 	"time"
 )

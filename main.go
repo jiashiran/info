@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/crypto/ssh"
+	sshd "info/pkg/ssh"
+	"info/pkg/xueqiu"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,12 +14,8 @@ import (
 	"net/url"
 	"os"
 	"regexp"
-	sshd "spider/pkg/ssh"
-	"spider/pkg/xueqiu"
 	"strconv"
 	"strings"
-	"sync"
-	"time"
 )
 
 var (
@@ -25,68 +23,6 @@ var (
 
 	//ips = []string{"39.105.202.8","39.107.243.195","39.96.50.197","123.56.17.69","47.95.241.44","47.94.130.119","47.93.218.38","101.200.52.2"}
 )
-
-func lengthOfLongestSubstring(s string) int {
-	start := 0
-	maxStr := string(s[0])
-	str := maxStr
-	for end := 1; end < len(s); {
-		if strings.Contains(str, string(s[end])) {
-			fmt.Println(maxStr, str, string(s[end]), start, end)
-			start = start + strings.Index(str, string(s[end])) + 1
-			end++
-			str = string(s[start:end])
-		} else {
-			str = str + string(s[end])
-			if len(str) > len(maxStr) {
-				maxStr = str
-			}
-			fmt.Println("else", maxStr, str, string(s[end]), start, end)
-			if end < len(s) {
-				end++
-			}
-		}
-	}
-	fmt.Println(maxStr)
-	return len(maxStr)
-}
-
-func DeferFunc3(ch chan int, wg *sync.WaitGroup) {
-	t1 := time.NewTimer(5 * time.Second)
-	t2 := time.NewTimer(5 * time.Second)
-	go func(c chan int) {
-		defer wg.Done()
-		r := rune('a')
-		for {
-			select {
-			case i, ok := <-c:
-				if i%2 == 1 && ok {
-					fmt.Println(string(r))
-					r++
-					time.Sleep(1 * time.Second)
-					c <- i + 1
-				}
-			case <-t1.C:
-				return
-			}
-		}
-	}(ch)
-	go func(c chan int) {
-		defer wg.Done()
-		for {
-			select {
-			case i, ok := <-c:
-				if i%2 == 0 && ok {
-					fmt.Println(i)
-					time.Sleep(1 * time.Second)
-					c <- i + 1
-				}
-			case <-t2.C:
-				return
-			}
-		}
-	}(ch)
-}
 
 func main() {
 	//jijin.Run()

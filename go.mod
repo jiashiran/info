@@ -1,4 +1,4 @@
-module spider
+module info
 
 go 1.20
 

@@ -6,8 +6,8 @@ import (
 	"github.com/chromedp/chromedp"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/shopspring/decimal"
+	"info/pkg"
 	"log"
-	"spider/pkg"
 	"strings"
 	"time"
 )

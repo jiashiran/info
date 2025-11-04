@@ -3,9 +3,6 @@ package xueqiu
 import (
 	"context"
 	"fmt"
-	"github.com/chromedp/cdproto/network"
-	"github.com/chromedp/chromedp"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"info/pkg"
 	"info/pkg/jijin"
 	"log"
@@ -15,13 +12,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/chromedp"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 var stocks = make([]Stock, 0)
 
 func Run() {
 	//jijin.DbInit()
-	// 代码,净资产收益率,毛利率
+	// 代码,净资产收益率,毛利率,营收增长
 	//getDetailHTML() // 净资产收益率,毛利率 1
 	//C() //合并，过滤
 
@@ -173,8 +174,8 @@ func getDHTML() {
 		//network.Enable(),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			fmt.Println("step1")
-			//reCheckByCSRBaidu("code.csv", res, ctx)
-			reCheckByCSR("code.csv", res, ctx)
+			reCheckByCSRBaidu("code.csv", res, ctx)
+			//reCheckByCSR("code.csv", res, ctx)
 			return nil
 		}),
 	}
@@ -240,7 +241,7 @@ func reCheckByCSRBaidu(name string, res string, ctx context.Context) {
 		//代码,总市值,流通市值,净资产收益率,毛利率,市盈率(静),TTM,市盈率(动),市盈率差,总股本,当前股价,名称,营收增长,服务,简介,
 		_ = value
 		pkg.ToTxt(value, "code-detail.csv")
-		time.Sleep(time.Duration(rand.Int63n(15)) * time.Second)
+		time.Sleep(time.Duration(rand.Int63n(5)) * time.Second)
 	})
 }
 
@@ -603,11 +604,13 @@ func getDetailHTML() {
 	tasks := chromedp.Tasks{
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			fmt.Println("step1")
-			search300(res, url, ctx)
-			search002(res, url, ctx)
-			search600(res, url, ctx)
-			search688(res, url, ctx)
-			search000(res, url, ctx)
+			//search300(res, url, ctx)
+			//search002(res, url, ctx)
+			//search600(res, url, ctx)
+			//search688(res, url, ctx)
+			//search000(res, url, ctx)
+			//search001(res, url, ctx)
+			search605(res, url, ctx)
 			return nil
 		}),
 	}
@@ -817,6 +820,60 @@ func search300(res, url string, ctx context.Context) {
 	}
 }
 
+func search001(res, url string, ctx context.Context) {
+	m := make(map[string]string)
+	pkg.ReadLine("001.csv", func(s string) {
+		c := strings.Split(s, ",")[0]
+		m[c] = "1"
+	})
+	for i := 1838; i <= 1999; i++ {
+		//SZ 300000  创业板
+		//SZ00 2000  中小板
+		//SH 600000  601000 603000 沪市A
+		//SZ000999 递减  深市A
+		cs := []rune(fmt.Sprint(i))
+		code := "SZ00" + string(cs)
+		if _, ok := m[code]; ok {
+			continue
+		}
+		chromedp.Navigate(strings.ReplaceAll(url, "%s", code)).Do(ctx)
+		chromedp.InnerHTML(`div#app`, &res, chromedp.NodeVisible, chromedp.ByQuery).Do(ctx)
+		if strings.Index(res, `净资产收益率`) > 0 {
+			s := strings.Split(res, `净资产收益率</td>`)[1]
+			s = strings.Split(s, `<span>%</span>`)[0]
+			s = strings.ReplaceAll(s, `<td><p>`, "")
+			fmt.Println(s)
+			f, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				f = 0.0
+			}
+			mll := strings.Split(res, `净利率</td>`)[1]
+			mll = strings.Split(mll, `<span>%</span>`)[0]
+			mll = strings.ReplaceAll(mll, `<td><p>`, "")
+			//fmt.Println("毛利率：", mll)
+			mllf, err := strconv.ParseFloat(mll, 64)
+			if err != nil {
+				mllf = 0.0
+			}
+			yyze := strings.Split(res, `营业收入同比增长</td>`)[1]
+			yyze = strings.Split(yyze, `<span>%</span>`)[0]
+			yyze = strings.ReplaceAll(yyze, `<td><p>`, "")
+			fmt.Println("营业收入同比增长：", yyze)
+			yyzef, err := strconv.ParseFloat(yyze, 64)
+			if err != nil {
+				yyzef = 0.0
+			}
+			/*if yyzef < 10 {
+				return
+			}*/
+			stock := Stock{code: code, Jzcsyl: f, Mll: mllf, RevenueFrowth: yyzef}
+			stocks = append(stocks, stock)
+			pkg.ToTxt(code+","+s+","+mll+","+yyze, "001.csv")
+		}
+		time.Sleep(time.Duration(rand.Int63n(4)) * time.Second)
+	}
+}
+
 func search002(res, url string, ctx context.Context) {
 	m := make(map[string]string)
 	pkg.ReadLine("002.csv", func(s string) {
@@ -925,6 +982,57 @@ func search600(res, url string, ctx context.Context) {
 	}
 }
 
+func search605(res, url string, ctx context.Context) {
+	m := make(map[string]string)
+	pkg.ReadLine("605.csv", func(s string) {
+		c := strings.Split(s, ",")[0]
+		m[c] = "1"
+	})
+	for i := 605000; i <= 605999; i++ {
+		//SZ 300000  创业板
+		//SZ00 2000  中小板
+		//SH 600000  601000 603000 沪市A  605 沪市主板A股
+		//SZ000999 递减  深市A
+		cs := []rune(fmt.Sprint(i))
+		code := "SH" + string(cs)
+		if _, ok := m[code]; ok {
+			continue
+		}
+		chromedp.Navigate(strings.ReplaceAll(url, "%s", code)).Do(ctx)
+		chromedp.InnerHTML(`div#app`, &res, chromedp.NodeVisible, chromedp.ByQuery).Do(ctx)
+		if strings.Index(res, `净资产收益率`) > 0 {
+			s := strings.Split(res, `净资产收益率</td>`)[1]
+			s = strings.Split(s, `<span>%</span>`)[0]
+			s = strings.ReplaceAll(s, `<td><p>`, "")
+			fmt.Println(s)
+			f, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				f = 0.0
+			}
+			mll := strings.Split(res, `净利率</td>`)[1]
+			mll = strings.Split(mll, `<span>%</span>`)[0]
+			mll = strings.ReplaceAll(mll, `<td><p>`, "")
+			//fmt.Println("毛利率：", mll)
+			mllf, err := strconv.ParseFloat(mll, 64)
+			if err != nil {
+				mllf = 0.0
+			}
+			yyze := strings.Split(res, `营业收入同比增长</td>`)[1]
+			yyze = strings.Split(yyze, `<span>%</span>`)[0]
+			yyze = strings.ReplaceAll(yyze, `<td><p>`, "")
+			fmt.Println("营业收入同比增长：", yyze)
+			yyzef, err := strconv.ParseFloat(yyze, 64)
+			if err != nil {
+				yyzef = 0.0
+			}
+			stock := Stock{code: code, Jzcsyl: f, Mll: mllf, RevenueFrowth: yyzef}
+			stocks = append(stocks, stock)
+			pkg.ToTxt(code+","+s+","+mll+","+yyze, "605.csv")
+		}
+		time.Sleep(time.Duration(rand.Int63n(4)) * time.Second)
+	}
+}
+
 func search688(res, url string, ctx context.Context) {
 	m := make(map[string]string)
 	pkg.ReadLine("688.csv", func(s string) {
@@ -1026,7 +1134,7 @@ func search000(res, url string, ctx context.Context) {
 }
 
 func C() {
-	files := []string{"000.csv", "002.csv", "300.csv", "600.csv", "688.csv"}
+	files := []string{"000.csv", "002.csv", "300.csv", "600.csv", "688.csv", "001.csv", "605.csv"}
 	for _, file := range files {
 		pkg.ReadLine(file, func(s string) {
 			if s == "" {
@@ -1047,12 +1155,15 @@ func C() {
 			if err != nil {
 				f = 0.0 //净利率
 			}
+			if f < 16 {
+				return
+			}
 			v = ss[3]
 			f, err = strconv.ParseFloat(v, 64)
 			if err != nil {
 				f = 0.0 //营收增速
 			}
-			if f < 16 || jzc < 9 {
+			if f < 30 || jzc < 9 {
 				return
 			}
 			pkg.ToTxt(s, "code.csv")
